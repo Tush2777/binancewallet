@@ -71,21 +71,21 @@ async function handleApi(request, response, url) {
 
   if (routeIsAdmin(url.pathname)) {
     if (!adminAuthorized(request)) return json(response, 401, { error: 'admin_unauthorized' });
-    if (request.method === 'GET' && url.pathname === '/api/admin/users') return json(response, 200, { users: db.listUsers() });
+    if (request.method === 'GET' && url.pathname === '/api/admin/users') return json(response, 200, { users: await db.listUsers() });
     if (request.method === 'POST') {
       let body;
       try { body = await readBody(request); } catch { return json(response, 400, { error: 'invalid_json' }); }
       if (url.pathname === '/api/admin/users') {
         if (!validEmail(body.email) || typeof body.username !== 'string' || !body.username.trim()) return json(response, 400, { error: 'invalid_account' });
-        const result = db.createUser({ email: body.email.trim(), username: body.username.trim() });
+        const result = await db.createUser({ email: body.email.trim(), username: body.username.trim() });
         return result.error ? json(response, 409, result) : json(response, 201, result);
       }
       if (url.pathname === '/api/admin/status') {
-        const result = db.updateUserStatus(body.uid, body.status);
+        const result = await db.updateUserStatus(body.uid, body.status);
         return result ? json(response, result.error ? 400 : 200, result) : json(response, 404, { error: 'user_not_found' });
       }
       if (url.pathname === '/api/admin/adjust-balance') {
-        const result = db.adjustAsset(body.uid, body);
+        const result = await db.adjustAsset(body.uid, body);
         return json(response, result.error ? (result.error === 'user_not_found' ? 404 : 400) : 200, result);
       }
     }
@@ -93,15 +93,15 @@ async function handleApi(request, response, url) {
 
   if (request.method === 'GET' && route === '/api/health') return json(response, 200, { ok: true });
   if (request.method === 'GET' && route === '/api/balance') {
-    const result = db.getBalance(url.searchParams.get('uid'));
+    const result = await db.getBalance(url.searchParams.get('uid'));
     return result ? json(response, 200, result) : json(response, 404, { error: 'user_not_found' });
   }
   if (request.method === 'GET' && route === '/api/assets') {
-    const result = db.getAssets(url.searchParams.get('uid'));
+    const result = await db.getAssets(url.searchParams.get('uid'));
     return result ? json(response, 200, result) : json(response, 404, { error: 'user_not_found' });
   }
   if (request.method === 'GET' && route === '/api/address') {
-    const result = db.getAddresses(url.searchParams.get('uid'));
+    const result = await db.getAddresses(url.searchParams.get('uid'));
     return result ? json(response, 200, result) : json(response, 404, { error: 'user_not_found' });
   }
   if (request.method === 'GET' && route === '/api/addresses') return json(response, 200, { addresses: [] });
@@ -113,21 +113,21 @@ async function handleApi(request, response, url) {
 
     if (route === '/api/account-exists') {
       if (!validEmail(body.email)) return json(response, 400, { error: 'invalid_email' });
-      const result = db.loginByEmail(body.email);
+      const result = await db.loginByEmail(body.email);
       return json(response, 200, result ? { exists: true, username: result.username } : { exists: false });
     }
     if (route === '/api/login-by-email') {
       if (!validEmail(body.email)) return json(response, 400, { error: 'invalid_email' });
-      const result = db.loginByEmail(body.email);
+      const result = await db.loginByEmail(body.email);
       return json(response, 200, result || { exists: false });
     }
     if (route === '/api/account') {
       if (!validEmail(body.email) || typeof body.username !== 'string' || !body.username.trim()) return json(response, 400, { error: 'invalid_account' });
-      const result = db.createUser({ email: body.email.trim(), username: body.username.trim() });
+      const result = await db.createUser({ email: body.email.trim(), username: body.username.trim() });
       return result.error ? json(response, 409, result) : json(response, 201, result);
     }
     if (route === '/api/send' || route === '/api/send-to-site') {
-      const result = db.sendFunds(body.uid, body);
+      const result = await db.sendFunds(body.uid, body);
       if (route === '/api/send-to-site' && !result.error) result.success = true;
       return result.error ? json(response, result.error === 'user_not_found' ? 404 : 400, result) : json(response, 200, result);
     }

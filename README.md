@@ -10,7 +10,18 @@ npm start
 
 Open <http://127.0.0.1:3000> to use the app. The server serves `app.html` at `/`.
 
-The database is stored in `data/app.json` and is created automatically on first start. It contains demo user `demo@example.com` with an approved account and 1,000 USDT. New accounts are approved immediately for this local demo.
+The app uses MySQL. On first connection it creates the `users`, `assets`, `addresses`, and `transactions` tables and seeds demo user `demo@example.com` with an approved account and 1,000 USDT. New accounts are approved immediately for this local demo.
+
+Set these environment variables before running locally:
+
+```bash
+export MYSQL_HOST=mysql-fastbinary-tomtylaofficial-3c44.l.aivencloud.com
+export MYSQL_PORT=10915
+export MYSQL_USER=avnadmin
+export MYSQL_PASSWORD=your-aiven-password
+export MYSQL_DATABASE=defaultdb
+export MYSQL_CA_PATH=./ca.pem
+```
 
 The server exposes the API already used by the page: account creation/login, balances, assets, deposit addresses, payments, transfers, and withdrawals.
 
@@ -35,4 +46,4 @@ The panel can create users, approve or suspend accounts, and add or subtract coi
 
 The app will be available at the Vercel URL, with the dashboard at `/` and admin panel at `/admin.html`.
 
-Important: `data/app.json` is suitable for local development only. Vercel function storage is temporary, so user and balance changes will not reliably persist across deployments or cold starts. Use a hosted database such as Vercel Postgres, Neon, Supabase, or MongoDB for production data.
+Set the same `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, and `MYSQL_CA_PATH` values in Vercel Project Settings. Use `MYSQL_CA_PATH=/var/task/ca.pem` on Vercel. The `ca.pem` file is included in the repository and is a public CA certificate; never commit database passwords.

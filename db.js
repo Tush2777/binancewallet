@@ -1,234 +1,191 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const mysql = require('mysql2/promise');
 
-const dataDir = path.join(__dirname, 'data');
-const dbFile = path.join(dataDir, 'app.json');
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  port: Number(process.env.MYSQL_PORT || 3306),
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE || 'defaultdb',
+  ssl: { ca: fs.readFileSync(process.env.MYSQL_CA_PATH || path.join(__dirname, 'ca.pem')) },
+  waitForConnections: true,
+  connectionLimit: 4,
+  queueLimit: 0
+});
 
-const defaultDatabase = {
-  nextUserId: 2,
-  users: [
-    {
-      id: 1,
-      email: 'demo@example.com',
-      username: 'Demo User',
-      status: 'approved',
-      createdAt: '2026-01-01T00:00:00.000Z',
-      balance: { usdt: 1000, todayPnl: 0 },
-      assets: [
-        { coin: 'USDT', name: 'TetherUS', balance: 1000, usdtValue: 1000 },
-        { coin: 'BTC', name: 'Bitcoin', balance: 0, usdtValue: 0 },
-        { coin: 'ETH', name: 'Ethereum', balance: 0, usdtValue: 0 }
-      ],
-      addresses: {
-        USDT: 'TQdemoUSDTAddress7YkVh4f2n9L8m3P6',
-        BNB: 'bnb1demoaddress7y kvh4f2n9l8m3p6'.replaceAll(' ', '')
-      },
-      transactions: []
-    }
-  ]
-};
+let ready;
 
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-function ensureDatabase() {
-  fs.mkdirSync(dataDir, { recursive: true });
-  if (!fs.existsSync(dbFile)) {
-    fs.writeFileSync(dbFile, JSON.stringify(defaultDatabase, null, 2));
+async function ensureDatabase() {
+  if (!ready) {
+    ready = (async () => {
+      await pool.query(`CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        username VARCHAR(255) NOT NULL,
+        status ENUM('approved', 'pending', 'suspended') NOT NULL DEFAULT 'approved',
+        created_at DATETIME NOT NULL
+      )`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS assets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        coin VARCHAR(32) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        balance DECIMAL(36, 18) NOT NULL DEFAULT 0,
+        usdt_value DECIMAL(36, 18) NOT NULL DEFAULT 0,
+        UNIQUE KEY user_coin (user_id, coin),
+        CONSTRAINT assets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS addresses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        coin VARCHAR(32) NOT NULL,
+        address VARCHAR(255) NOT NULL,
+        UNIQUE KEY user_address_coin (user_id, coin),
+        CONSTRAINT addresses_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS transactions (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type VARCHAR(64) NOT NULL,
+        coin VARCHAR(32),
+        amount DECIMAL(36, 18),
+        recipient VARCHAR(255),
+        site VARCHAR(255),
+        created_at DATETIME NOT NULL,
+        CONSTRAINT transactions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`);
+      const [rows] = await pool.query('SELECT id FROM users LIMIT 1');
+      if (!rows.length) {
+        const [result] = await pool.execute('INSERT INTO users (email, username, status, created_at) VALUES (?, ?, ?, ?)', ['demo@example.com', 'Demo User', 'approved', new Date()]);
+        await pool.execute('INSERT INTO assets (user_id, coin, name, balance, usdt_value) VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)', [result.insertId, 'USDT', 'TetherUS', 1000, 1000, result.insertId, 'BTC', 'Bitcoin', 0, 0, result.insertId, 'ETH', 'Ethereum', 0, 0]);
+        await pool.execute('INSERT INTO addresses (user_id, coin, address) VALUES (?, ?, ?), (?, ?, ?)', [result.insertId, 'USDT', 'TQdemoUSDTAddress7YkVh4f2n9L8m3P6', result.insertId, 'BNB', 'bnb1demoaddress7ykvh4f2n9l8m3p6']);
+      }
+    })().catch((error) => { ready = null; throw error; });
   }
-}
-
-function readDatabase() {
-  ensureDatabase();
-  return JSON.parse(fs.readFileSync(dbFile, 'utf8'));
-}
-
-function writeDatabase(database) {
-  ensureDatabase();
-  const tempFile = `${dbFile}.tmp`;
-  fs.writeFileSync(tempFile, JSON.stringify(database, null, 2));
-  fs.renameSync(tempFile, dbFile);
-}
-
-function updateDatabase(mutator) {
-  const database = readDatabase();
-  const result = mutator(database);
-  writeDatabase(database);
-  return result;
-}
-
-function findUser(database, userId) {
-  return database.users.find((user) => user.id === Number(userId));
+  return ready;
 }
 
 function publicUser(user) {
   return { uid: user.id, username: user.username, email: user.email, status: user.status };
 }
 
-function normalizeUser(user) {
-  user.balance ||= { usdt: 0, todayPnl: 0 };
-  user.assets ||= [];
-  user.addresses ||= {};
-  user.transactions ||= [];
-  return user;
+function assetValue(asset) {
+  return { coin: asset.coin, name: asset.name, balance: Number(asset.balance), usdtValue: Number(asset.usdt_value) };
 }
 
-function balanceForUser(user) {
-  normalizeUser(user);
-  const totalUsdt = user.assets.reduce((total, asset) => total + Number(asset.usdtValue || asset.balance || 0), 0);
-  return {
-    uid: user.id,
-    totalUsdt: totalUsdt.toFixed(2),
-    todayPnl: Number(user.balance.todayPnl || 0).toFixed(2),
-    todayPnlPercent: '0.00'
-  };
+async function getUser(userId) {
+  await ensureDatabase();
+  const [rows] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
+  return rows[0] || null;
+}
+
+async function getUserByEmail(email) {
+  await ensureDatabase();
+  const [rows] = await pool.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+  return rows[0] || null;
+}
+
+async function getAssetsForUser(userId) {
+  const [rows] = await pool.execute('SELECT coin, name, balance, usdt_value FROM assets WHERE user_id = ? ORDER BY id', [userId]);
+  return rows.map(assetValue);
+}
+
+async function balanceForUser(userId) {
+  const user = await getUser(userId);
+  if (!user) return null;
+  const [rows] = await pool.execute('SELECT COALESCE(SUM(usdt_value), 0) AS total FROM assets WHERE user_id = ?', [userId]);
+  return { uid: user.id, totalUsdt: Number(rows[0].total).toFixed(2), todayPnl: '0.00', todayPnlPercent: '0.00' };
+}
+
+async function transactionRows(userId) {
+  const [rows] = await pool.execute('SELECT id, type, coin, amount, recipient, site, created_at FROM transactions WHERE user_id = ? ORDER BY id DESC', [userId]);
+  return rows.map((row) => ({ id: String(row.id), type: row.type, coin: row.coin, amount: Number(row.amount), recipient: row.recipient, site: row.site, createdAt: row.created_at }));
 }
 
 module.exports = {
-  listUsers() {
-    const database = readDatabase();
-    return database.users.map((user) => {
-      normalizeUser(user);
-      return {
-        ...publicUser(user),
-        createdAt: user.createdAt,
-        totalUsdt: balanceForUser(user).totalUsdt,
-        assets: clone(user.assets),
-        transactions: clone(user.transactions)
-      };
-    });
+  async listUsers() {
+    await ensureDatabase();
+    const [users] = await pool.query('SELECT * FROM users ORDER BY id');
+    return Promise.all(users.map(async (user) => ({ ...publicUser(user), createdAt: user.created_at, totalUsdt: (await balanceForUser(user.id)).totalUsdt, assets: await getAssetsForUser(user.id), transactions: await transactionRows(user.id) })));
   },
 
-  createUser({ email, username }) {
-    return updateDatabase((database) => {
-      const existing = database.users.find((user) => user.email.toLowerCase() === email.toLowerCase());
-      if (existing) return { error: 'email_exists' };
-
-      const user = normalizeUser({
-        id: database.nextUserId++,
-        email,
-        username,
-        status: 'approved',
-        createdAt: new Date().toISOString(),
-        balance: { usdt: 0, todayPnl: 0 },
-        assets: [],
-        addresses: {
-          USDT: `TQ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`,
-          BNB: `bnb1${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`
-        },
-        transactions: []
-      });
-      database.users.push(user);
-      return publicUser(user);
-    });
+  async createUser({ email, username }) {
+    await ensureDatabase();
+    try {
+      const [result] = await pool.execute('INSERT INTO users (email, username, status, created_at) VALUES (?, ?, ?, ?)', [email, username, 'approved', new Date()]);
+      await pool.execute('INSERT INTO addresses (user_id, coin, address) VALUES (?, ?, ?), (?, ?, ?)', [result.insertId, 'USDT', `TQ${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`, result.insertId, 'BNB', `bnb1${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`]);
+      return publicUser({ id: result.insertId, email, username, status: 'approved' });
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') return { error: 'email_exists' };
+      throw error;
+    }
   },
 
-  updateUserStatus(userId, status) {
-    return updateDatabase((database) => {
-      const user = findUser(database, userId);
-      if (!user) return null;
-      if (!['approved', 'pending', 'suspended'].includes(status)) return { error: 'invalid_status' };
-      user.status = status;
-      return publicUser(user);
-    });
+  async updateUserStatus(userId, status) {
+    await ensureDatabase();
+    if (!['approved', 'pending', 'suspended'].includes(status)) return { error: 'invalid_status' };
+    const [result] = await pool.execute('UPDATE users SET status = ? WHERE id = ?', [status, userId]);
+    return result.affectedRows ? publicUser({ ...(await getUser(userId)), status }) : null;
   },
 
-  adjustAsset(userId, { coin, name, amount, usdtValue }) {
-    return updateDatabase((database) => {
-      const user = findUser(database, userId);
-      const numericAmount = Number(amount);
-      if (!user) return { error: 'user_not_found' };
-      if (!coin || !Number.isFinite(numericAmount) || numericAmount === 0) return { error: 'invalid_asset' };
-      normalizeUser(user);
+  async adjustAsset(userId, { coin, name, amount, usdtValue }) {
+    await ensureDatabase();
+    const numericAmount = Number(amount);
+    if (!coin || !Number.isFinite(numericAmount) || numericAmount === 0) return { error: 'invalid_asset' };
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [users] = await connection.execute('SELECT * FROM users WHERE id = ? FOR UPDATE', [userId]);
+      if (!users.length) { await connection.rollback(); return { error: 'user_not_found' }; }
       const normalizedCoin = String(coin).trim().toUpperCase();
-      let asset = user.assets.find((candidate) => candidate.coin.toUpperCase() === normalizedCoin);
-      if (!asset) {
-        asset = { coin: normalizedCoin, name: name || normalizedCoin, balance: 0, usdtValue: 0 };
-        user.assets.push(asset);
-      }
-      const nextBalance = Number(asset.balance || 0) + numericAmount;
-      if (nextBalance < 0) return { error: 'insufficient_balance' };
-      asset.balance = nextBalance;
-      asset.name = name || asset.name || normalizedCoin;
-      asset.usdtValue = Number.isFinite(Number(usdtValue))
-        ? Number(usdtValue)
-        : Number(asset.usdtValue || 0) + numericAmount;
-      user.transactions.unshift({
-        id: `${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        type: 'admin_adjustment',
-        coin: normalizedCoin,
-        amount: numericAmount,
-        createdAt: new Date().toISOString()
-      });
-      return { user: publicUser(user), balance: balanceForUser(user), assets: clone(user.assets) };
-    });
+      const [assets] = await connection.execute('SELECT * FROM assets WHERE user_id = ? AND coin = ? FOR UPDATE', [userId, normalizedCoin]);
+      const current = assets[0] || { balance: 0, usdt_value: 0 };
+      const nextBalance = Number(current.balance) + numericAmount;
+      if (nextBalance < 0) { await connection.rollback(); return { error: 'insufficient_balance' }; }
+      await connection.execute('INSERT INTO assets (user_id, coin, name, balance, usdt_value) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), balance = VALUES(balance), usdt_value = VALUES(usdt_value)', [userId, normalizedCoin, name || normalizedCoin, nextBalance, Number.isFinite(Number(usdtValue)) ? Number(usdtValue) : Number(current.usdt_value) + numericAmount]);
+      await connection.execute('INSERT INTO transactions (user_id, type, coin, amount, created_at) VALUES (?, ?, ?, ?, ?)', [userId, 'admin_adjustment', normalizedCoin, numericAmount, new Date()]);
+      await connection.commit();
+      return { user: publicUser(users[0]), balance: await balanceForUser(userId), assets: await getAssetsForUser(userId) };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally { connection.release(); }
   },
 
-  loginByEmail(email) {
-    const database = readDatabase();
-    const user = database.users.find((candidate) => candidate.email.toLowerCase() === email.toLowerCase());
+  async loginByEmail(email) {
+    const user = await getUserByEmail(email);
     if (!user) return null;
     if (user.status !== 'approved') return { error: 'pending' };
     return publicUser(user);
   },
 
-  getUser(userId) {
-    const database = readDatabase();
-    const user = findUser(database, userId);
-    return user ? normalizeUser(user) : null;
+  async getBalance(userId) { return balanceForUser(userId); },
+  async getAssets(userId) { return (await getUser(userId)) ? { uid: Number(userId), assets: await getAssetsForUser(userId) } : null; },
+  async getAddresses(userId) {
+    if (!(await getUser(userId))) return null;
+    const [rows] = await pool.execute('SELECT coin, address FROM addresses WHERE user_id = ?', [userId]);
+    const addresses = Object.fromEntries(rows.map((row) => [row.coin, row.address]));
+    return { uid: Number(userId), address: addresses.BNB, usdtAddress: addresses.USDT };
   },
 
-  getBalance(userId) {
-    const user = this.getUser(userId);
-    if (!user) return null;
-    return balanceForUser(user);
-  },
-
-  getAssets(userId) {
-    const user = this.getUser(userId);
-    return user ? { uid: user.id, assets: clone(user.assets) } : null;
-  },
-
-  getAddresses(userId) {
-    const user = this.getUser(userId);
-    return user ? { uid: user.id, address: user.addresses.BNB, usdtAddress: user.addresses.USDT } : null;
-  },
-
-  addTransaction(userId, transaction) {
-    return updateDatabase((database) => {
-      const user = findUser(database, userId);
-      if (!user) return null;
-      normalizeUser(user).transactions.unshift({
-        id: `${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        createdAt: new Date().toISOString(),
-        ...transaction
-      });
-      return balanceForUser(user);
-    });
-  },
-
-  sendFunds(userId, { coin, amount, recipient, site }) {
-    return updateDatabase((database) => {
-      const user = findUser(database, userId);
-      if (!user) return { error: 'user_not_found' };
-      normalizeUser(user);
-      const asset = user.assets.find((candidate) => candidate.coin.toUpperCase() === coin.toUpperCase());
-      const numericAmount = Number(amount);
-      if (!asset || !Number.isFinite(numericAmount) || numericAmount <= 0) return { error: 'invalid_amount' };
-      if (Number(asset.balance) < numericAmount) return { error: 'insufficient_balance' };
-      asset.balance = Number(asset.balance) - numericAmount;
-      asset.usdtValue = Number(asset.usdtValue || 0) - numericAmount;
-      user.transactions.unshift({
-        id: `${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        type: site ? 'site_payment' : 'send',
-        coin: coin.toUpperCase(),
-        amount: numericAmount,
-        recipient: recipient || null,
-        site: site || null,
-        createdAt: new Date().toISOString()
-      });
-      return { id: user.transactions[0].id, balance: balanceForUser(user) };
-    });
+  async sendFunds(userId, { coin, amount, recipient, site }) {
+    await ensureDatabase();
+    const numericAmount = Number(amount);
+    if (!coin || !Number.isFinite(numericAmount) || numericAmount <= 0) return { error: 'invalid_amount' };
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [assets] = await connection.execute('SELECT * FROM assets WHERE user_id = ? AND coin = ? FOR UPDATE', [userId, String(coin).toUpperCase()]);
+      if (!assets.length) { await connection.rollback(); return { error: 'invalid_amount' }; }
+      if (Number(assets[0].balance) < numericAmount) { await connection.rollback(); return { error: 'insufficient_balance' }; }
+      await connection.execute('UPDATE assets SET balance = balance - ?, usdt_value = usdt_value - ? WHERE user_id = ? AND coin = ?', [numericAmount, numericAmount, userId, String(coin).toUpperCase()]);
+      const [result] = await connection.execute('INSERT INTO transactions (user_id, type, coin, amount, recipient, site, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [userId, site ? 'site_payment' : 'send', String(coin).toUpperCase(), numericAmount, recipient || null, site || null, new Date()]);
+      await connection.commit();
+      return { id: String(result.insertId), balance: await balanceForUser(userId) };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally { connection.release(); }
   }
 };

@@ -1,2 +1,4 @@
 data/app.json
 data/app.json.tmp
+.env
+node_modules/
