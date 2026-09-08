@@ -139,19 +139,24 @@ function routeIsAdmin(route) {
   return route === '/api/admin/users' || route === '/api/admin/status' || route === '/api/admin/adjust-balance';
 }
 
-const server = http.createServer((request, response) => {
+function requestHandler(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
   if (url.pathname.startsWith('/api/')) return handleApi(request, response, url).catch(() => json(response, 500, { error: 'server_error' }));
   if (request.method !== 'GET' && request.method !== 'HEAD') return notFound(response);
   return serveFile(request, response, decodeURIComponent(url.pathname));
-});
-
-server.listen(PORT, HOST, () => {
-  console.log(`Binance clone server running at http://${HOST}:${PORT}`);
-});
-
-function shutdown() {
-  server.close(() => process.exit(0));
 }
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+
+module.exports = requestHandler;
+
+if (require.main === module) {
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, HOST, () => {
+    console.log(`Binance clone server running at http://${HOST}:${PORT}`);
+  });
+
+  function shutdown() {
+    server.close(() => process.exit(0));
+  }
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}

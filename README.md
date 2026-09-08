@@ -25,3 +25,14 @@ ADMIN_KEY=your-local-key npm start
 ```
 
 The panel can create users, approve or suspend accounts, and add or subtract coin balances. Admin routes require the `x-admin-key` request header.
+
+## Deploy to Vercel
+
+1. Push this project to GitHub.
+2. In Vercel, choose **Add New Project**, import `Tush2777/binancewallet`, and deploy.
+3. Add the environment variable `ADMIN_KEY` in Vercel Project Settings. Do not use the default local key in production.
+4. Redeploy after adding the variable.
+
+The app will be available at the Vercel URL, with the dashboard at `/` and admin panel at `/admin.html`.
+
+Important: `data/app.json` is suitable for local development only. Vercel function storage is temporary, so user and balance changes will not reliably persist across deployments or cold starts. Use a hosted database such as Vercel Postgres, Neon, Supabase, or MongoDB for production data.
