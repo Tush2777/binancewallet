@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Book outline -->
+  <path d="M154 126C139.641 126 128 137.641 128 152V360C128 381.013 144.987 398 166 398H350C364.359 398 376 386.359 376 372V152C376 137.641 364.359 126 350 126H154Z"
+        stroke="#000000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bottom page / spine curve -->
+  <path d="M129 360C142 346 158 340 177 340H351"
+        stroke="#000000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Question mark -->
+  <path d="M219 193C219 170 237 154 260 154C284 154 301 168 301 190C301 207 292 219 275 229C263 236 258 243 258 255V260"
+        stroke="#000000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="258" cy="294" r="11" fill="#000000"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <title>Ethereum color icon</title>
+  <rect width="512" height="512" fill="none"/>
+  <g transform="translate(128 48) scale(1)">
+    <polygon points="128,0 128,154 256,212" fill="#627EEA"/>
+    <polygon points="128,0 0,212 128,154" fill="#8A92B2"/>
+    <polygon points="128,306 128,416 256,236" fill="#627EEA"/>
+    <polygon points="128,416 128,306 0,236" fill="#8A92B2"/>
+    <polygon points="128,282 256,212 128,154" fill="#506AD4"/>
+    <polygon points="0,212 128,282 128,154" fill="#6B78C7"/>
+    <polygon points="128,306 256,236 128,282" fill="#4660C7"/>
+    <polygon points="0,236 128,306 128,282" fill="#7A82A6"/>
+  </g>
+</svg>

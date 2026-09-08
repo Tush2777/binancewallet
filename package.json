@@ -1,0 +1,15 @@
+{
+  "name": "binance-clone-local",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Node.js server and JSON database for the Binance clone UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js && node --check db.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

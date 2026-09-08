@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Trash Icon</title>
+  <g stroke="#8C8C8C" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M168 190V408H344V190"/>
+    <path d="M132 164H380"/>
+    <path d="M204 164V104H308V164"/>
+    <path d="M228 244V340"/>
+    <path d="M284 244V340"/>
+  </g>
+</svg>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Binance Clone Admin</title>
+  <style>
+    :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #1e2026; background: #f5f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { background: #0b0e11; color: #fff; padding: 22px clamp(18px, 5vw, 64px); display: flex; gap: 20px; align-items: center; justify-content: space-between; }
+    header h1 { margin: 0; font-size: 22px; }
+    header p { margin: 5px 0 0; color: #aeb4bd; font-size: 13px; }
+    main { max-width: 1180px; margin: 28px auto; padding: 0 18px 48px; }
+    .toolbar, .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; box-shadow: 0 4px 18px #1720330d; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 18px; }
+    .toolbar label { flex: 1 1 260px; }
+    label { display: grid; gap: 6px; font-size: 12px; color: #667085; font-weight: 700; }
+    input, select, button { border: 1px solid #d0d5dd; border-radius: 7px; min-height: 40px; padding: 9px 11px; font: inherit; }
+    input, select { width: 100%; background: #fff; }
+    button { cursor: pointer; background: #f0b90b; border-color: #f0b90b; font-weight: 700; }
+    button.secondary { background: #fff; border-color: #d0d5dd; }
+    button.danger { background: #fff0f1; color: #d92d20; border-color: #fecdca; }
+    .grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 18px; }
+    h2 { margin: 0 0 14px; font-size: 17px; }
+    .create-grid, .adjust-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .wide { grid-column: 1 / -1; }
+    .user-list { display: grid; gap: 12px; }
+    .user { border: 1px solid #eaecf0; border-radius: 9px; padding: 13px; }
+    .user-top, .asset, .actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .user-top strong { display: block; }
+    .muted { color: #667085; font-size: 12px; }
+    .pill { display: inline-block; border-radius: 20px; padding: 4px 8px; font-size: 11px; font-weight: 700; background: #ecfdf3; color: #027a48; }
+    .pill.pending { background: #fffaeb; color: #b54708; }
+    .pill.suspended { background: #fff0f1; color: #b42318; }
+    .asset { padding: 9px 0; border-top: 1px solid #f2f4f7; }
+    .actions { justify-content: flex-start; margin-top: 10px; }
+    .actions button { min-height: 32px; padding: 5px 8px; font-size: 12px; }
+    #message { min-height: 20px; margin: 10px 0; font-size: 13px; font-weight: 700; }
+    #message.error { color: #b42318; }
+    #message.ok { color: #027a48; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .create-grid, .adjust-grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } }
+  </style>
+</head>
+<body>
+  <header><div><h1>Binance Clone Admin</h1><p>Manage local users, account status, and wallet balances.</p></div><button class="secondary" id="refresh">Refresh</button></header>
+  <main>
+    <div class="toolbar"><label>Admin key<input id="admin-key" type="password" placeholder="ADMIN_KEY"></label><button id="connect">Connect</button><span class="muted">Local default: change-me-admin</span></div>
+    <div id="message"></div>
+    <div class="grid">
+      <section class="panel"><h2>Create user</h2><form id="create-form" class="create-grid"><label>Email<input name="email" type="email" required></label><label>Name<input name="username" required></label><button class="wide">Create approved account</button></form></section>
+      <section class="panel"><h2>Adjust balance</h2><form id="adjust-form" class="adjust-grid"><label>User<select name="uid" id="user-select" required></select></label><label>Coin<input name="coin" value="USDT" required></label><label>Amount<input name="amount" type="number" step="any" placeholder="+100 or -25" required></label><label>Coin name<input name="name" value="TetherUS"></label><button class="wide">Apply balance change</button></form></section>
+    </div>
+    <section class="panel" style="margin-top:18px"><h2>Users</h2><div id="users" class="user-list"><div class="muted">Connect to load users.</div></div></section>
+  </main>
+  <script>
+    let users = [];
+    const key = () => document.getElementById('admin-key').value;
+    const headers = () => ({ 'Content-Type': 'application/json', 'x-admin-key': key() });
+    const message = (text, error = false) => { const el = document.getElementById('message'); el.textContent = text; el.className = error ? 'error' : 'ok'; };
+    async function api(path, options = {}) { const response = await fetch(path, { ...options, headers: { ...headers(), ...(options.headers || {}) } }); const body = await response.json(); if (!response.ok) throw new Error(body.error || 'Request failed'); return body; }
+    function render() {
+      const select = document.getElementById('user-select');
+      select.innerHTML = users.map((user) => `<option value="${user.uid}">${user.uid} · ${escapeHtml(user.username)} · ${escapeHtml(user.email)}</option>`).join('');
+      document.getElementById('users').innerHTML = users.map((user) => `<article class="user"><div class="user-top"><div><strong>${escapeHtml(user.username)}</strong><span class="muted">${escapeHtml(user.email)} · ID ${user.uid}</span></div><span class="pill ${user.status}">${user.status}</span></div><div class="muted" style="margin-top:10px">Portfolio: <strong>${user.totalUsdt} USDT</strong></div>${user.assets.map((asset) => `<div class="asset"><span>${escapeHtml(asset.coin)} <span class="muted">${escapeHtml(asset.name)}</span></span><strong>${Number(asset.balance).toLocaleString()}</strong></div>`).join('')}<div class="actions"><button data-status="approved" data-uid="${user.uid}">Approve</button><button class="secondary" data-status="pending" data-uid="${user.uid}">Pending</button><button class="danger" data-status="suspended" data-uid="${user.uid}">Suspend</button></div></article>`).join('') || '<div class="muted">No users.</div>';
+      document.querySelectorAll('[data-status]').forEach((button) => button.onclick = async () => { try { await api('/api/admin/status', { method: 'POST', body: JSON.stringify({ uid: button.dataset.uid, status: button.dataset.status }) }); await load(); message('User status updated.'); } catch (error) { message(error.message, true); } });
+    }
+    const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+    async function load() { const data = await api('/api/admin/users'); users = data.users; render(); }
+    document.getElementById('connect').onclick = () => load().then(() => message('Connected.')).catch((error) => message(error.message, true));
+    document.getElementById('refresh').onclick = () => load().then(() => message('User list refreshed.')).catch((error) => message(error.message, true));
+    document.getElementById('create-form').onsubmit = async (event) => { event.preventDefault(); try { const data = Object.fromEntries(new FormData(event.target)); await api('/api/admin/users', { method: 'POST', body: JSON.stringify(data) }); event.target.reset(); await load(); message('User created.'); } catch (error) { message(error.message, true); } };
+    document.getElementById('adjust-form').onsubmit = async (event) => { event.preventDefault(); try { const data = Object.fromEntries(new FormData(event.target)); await api('/api/admin/adjust-balance', { method: 'POST', body: JSON.stringify(data) }); await load(); message('Balance updated.'); } catch (error) { message(error.message, true); } };
+  </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Yellow gift icon">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD72E"/>
+      <stop offset="0.55" stop-color="#FFC914"/>
+      <stop offset="1" stop-color="#F2B705"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#F5F5E8"/>
+      <stop offset="0.42" stop-color="#C9D0D1"/>
+      <stop offset="0.58" stop-color="#7B858B"/>
+      <stop offset="1" stop-color="#F5F5E8"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#D8B700" flood-opacity="0.38"/>
+    </filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#ffffff"/>
+
+  <!-- faint sparkle marks -->
+  <g opacity="0.18" stroke="#8E969B" stroke-width="5" stroke-linecap="round">
+    <path d="M84 197v28M70 211h28"/>
+    <path d="M421 94v24M409 106h24"/>
+    <path d="M331 360v18M322 369h18"/>
+  </g>
+
+  <!-- box body -->
+  <g filter="url(#softShadow)">
+    <path d="M93 210h144v192H103c-6 0-10-4-10-10V210z" fill="url(#gold)"/>
+    <path d="M275 210h144v182c0 6-4 10-10 10H275V210z" fill="url(#gold)"/>
+
+    <!-- lid -->
+    <path d="M75 157h162v62H75c-6 0-10-4-10-10v-42c0-6 4-10 10-10z" fill="url(#gold)"/>
+    <path d="M275 157h162c6 0 10 4 10 10v42c0 6-4 10-10 10H275v-62z" fill="url(#gold)"/>
+
+    <!-- center ribbon -->
+    <rect x="237" y="157" width="38" height="245" fill="url(#ribbon)"/>
+    <rect x="232" y="157" width="7" height="245" fill="#FFFCE2" opacity="0.9"/>
+    <rect x="273" y="157" width="7" height="245" fill="#FFFCE2" opacity="0.9"/>
+  </g>
+
+  <!-- black tie band and bow -->
+  <g fill="#1F252B" filter="url(#glow)">
+    <rect x="175" y="144" width="162" height="22" rx="3"/>
+    <path d="M244 142h24v-62c0-5-4-9-9-9h-6c-5 0-9 4-9 9v62z"/>
+    <path d="M240 143c-34-8-52-24-57-48 27-7 49 6 67 41l-10 7z"/>
+    <path d="M272 143c34-8 52-24 57-48-27-7-49 6-67 41l10 7z"/>
+    <path d="M236 132c-22-5-37-17-48-36 13 2 27 12 43 31l5 5z" opacity="0.92"/>
+    <path d="M276 132c22-5 37-17 48-36-13 2-27 12-43 31l-5 5z" opacity="0.92"/>
+  </g>
+</svg>
