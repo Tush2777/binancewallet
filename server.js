@@ -146,7 +146,7 @@ function routeIsAdmin(route) {
 
 function requestHandler(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
-  if (url.pathname === '/api/index') {
+  if (url.pathname === '/api/index.js') {
     const apiPath = url.searchParams.get('__api_path');
     if (apiPath) {
       url.pathname = `/api/${apiPath}`;

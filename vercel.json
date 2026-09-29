@@ -15,7 +15,7 @@
     { "src": "ICONS/**", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index?__api_path=:path*" },
+    { "source": "/api/:path*", "destination": "/api/index.js?__api_path=:path*" },
     { "source": "/", "destination": "/app.html" },
     { "source": "/dashboard", "destination": "/app.html" },
     { "source": "/admin", "destination": "/admin.html" }
