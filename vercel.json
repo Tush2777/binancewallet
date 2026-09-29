@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
         "includeFiles": "ca.pem"
@@ -15,6 +15,7 @@
     { "src": "ICONS/**", "use": "@vercel/static" }
   ],
   "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index?__api_path=:path*" },
     { "source": "/", "destination": "/app.html" },
     { "source": "/dashboard", "destination": "/app.html" },
     { "source": "/admin", "destination": "/admin.html" }

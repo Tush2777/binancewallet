@@ -146,6 +146,13 @@ function routeIsAdmin(route) {
 
 function requestHandler(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  if (url.pathname === '/api/index') {
+    const apiPath = url.searchParams.get('__api_path');
+    if (apiPath) {
+      url.pathname = `/api/${apiPath}`;
+      url.searchParams.delete('__api_path');
+    }
+  }
   if (url.pathname.startsWith('/api/')) return handleApi(request, response, url).catch(() => json(response, 500, { error: 'server_error' }));
   if (request.method !== 'GET' && request.method !== 'HEAD') return notFound(response);
   return serveFile(request, response, decodeURIComponent(url.pathname));
