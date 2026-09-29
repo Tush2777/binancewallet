@@ -91,7 +91,15 @@ async function handleApi(request, response, url) {
     }
   }
 
-  if (request.method === 'GET' && route === '/api/health') return json(response, 200, { ok: true });
+  if (request.method === 'GET' && route === '/api/health') {
+    try {
+      await db.checkConnection();
+      return json(response, 200, { ok: true, database: 'connected' });
+    } catch (error) {
+      console.error('Database health check failed:', error.code || error.name);
+      return json(response, 503, { ok: false, database: 'unavailable' });
+    }
+  }
   if (request.method === 'GET' && route === '/api/balance') {
     const result = await db.getBalance(url.searchParams.get('uid'));
     return result ? json(response, 200, result) : json(response, 404, { error: 'user_not_found' });

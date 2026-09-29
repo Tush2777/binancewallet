@@ -10,18 +10,11 @@ npm start
 
 Open <http://127.0.0.1:3000> to use the app. The server serves `app.html` at `/`.
 
-The app uses MySQL. On first connection it creates the `users`, `assets`, `addresses`, and `transactions` tables and seeds demo user `demo@example.com` with an approved account and 1,000 USDT. New accounts are approved immediately for this local demo.
+The app uses MySQL. On first connection it creates the separate `binanceUsers`, `assets`, `addresses`, and `binanceTransactions` tables and seeds demo user `demo@example.com` with an approved account and 1,000 USDT. Existing `users` and `transactions` tables are left intact for other projects. New accounts are approved immediately for this local demo. The server loads local settings from `.env` automatically; `.env` is ignored by Git.
 
-Set these environment variables before running locally:
+Set your database credentials in `.env`. Use `.env.example` as a reference if needed, and do not overwrite an existing `.env`.
 
-```bash
-export MYSQL_HOST=mysql-fastbinary-tomtylaofficial-3c44.l.aivencloud.com
-export MYSQL_PORT=10915
-export MYSQL_USER=avnadmin
-export MYSQL_PASSWORD=your-aiven-password
-export MYSQL_DATABASE=defaultdb
-export MYSQL_CA_PATH=./ca.pem
-```
+The `/api/health` endpoint returns `database: "connected"` only after MySQL connects and the schema is ready; otherwise it returns HTTP 503.
 
 The server exposes the API already used by the page: account creation/login, balances, assets, deposit addresses, payments, transfers, and withdrawals.
 
