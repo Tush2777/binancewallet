@@ -3653,7 +3653,7 @@ html,body{
     var mask = '•••.••';
     var homeNum  = document.getElementById('home-bal-num');
     var homeFiat = document.getElementById('home-bal-fiat');
-    var homePnl  = document.getElementById('home-pnl');
+   // var homePnl  = document.getElementById('home-pnl');
     var assetNum = document.getElementById('asset-bal-num');
     var assetFiat= document.getElementById('asset-bal-fiat');
     var assetPnl = document.getElementById('asset-pnl');
@@ -3662,7 +3662,7 @@ html,body{
       // Save current real values before masking
       _balSnapshot.homeNum  = homeNum  ? homeNum.textContent  : '';
       _balSnapshot.homeFiat = homeFiat ? homeFiat.textContent : '';
-      _balSnapshot.homePnl  = homePnl  ? homePnl.textContent  : '';
+     // _balSnapshot.homePnl  = homePnl  ? homePnl.textContent  : '';
       _balSnapshot.assetFiat= assetFiat? assetFiat.textContent: '';
       // asset-bal-num uses a text node + span child
       _balSnapshot.assetNum = (assetNum && assetNum.firstChild && assetNum.firstChild.nodeType===3)
@@ -4262,7 +4262,7 @@ function applyBalance(b) {
     _balSnapshot.homeFiat  = '≈$' + val;
     _balSnapshot.assetNum  = '$' + val;
     _balSnapshot.assetFiat = '≈$' + val;
-    _balSnapshot.homePnl   = pnlStr;
+    //_balSnapshot.homePnl   = pnlStr;
     _balSnapshot.assetPnl  = pnlStr;
   } else {
     var num  = document.getElementById('home-bal-num');
