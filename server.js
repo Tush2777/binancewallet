@@ -1,10 +1,7 @@
-const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const db = require('./db');
 
-const PORT = Number(process.env.PORT || 3000);
-const HOST = process.env.HOST || '127.0.0.1';
 const root = __dirname;
 const ADMIN_KEY = process.env.ADMIN_KEY || 'change-me-admin';
 
@@ -148,23 +145,10 @@ function routeIsAdmin(route) {
 }
 
 function requestHandler(request, response) {
-  const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
+  const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
   if (url.pathname.startsWith('/api/')) return handleApi(request, response, url).catch(() => json(response, 500, { error: 'server_error' }));
   if (request.method !== 'GET' && request.method !== 'HEAD') return notFound(response);
   return serveFile(request, response, decodeURIComponent(url.pathname));
 }
 
 module.exports = requestHandler;
-
-if (require.main === module) {
-  const server = http.createServer(requestHandler);
-  server.listen(PORT, HOST, () => {
-    console.log(`Binance clone server running at http://${HOST}:${PORT}`);
-  });
-
-  function shutdown() {
-    server.close(() => process.exit(0));
-  }
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-}
