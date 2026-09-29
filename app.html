@@ -6,14 +6,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Binance</title>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/icon-192-pwa.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192-pwa.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Binance">
 <meta name="theme-color" content="#0B0E11">
-<link rel="apple-touch-startup-image" href="/icon-192.png">
+<link rel="apple-touch-startup-image" href="/icon-192-pwa.png">
 <style>
 @font-face{font-family:'PN';font-weight:400;src:url('/fonts/proxima-regular.otf') format('opentype')}
 @font-face{font-family:'PN';font-weight:500;src:url('/fonts/proxima-medium.otf') format('opentype')}
@@ -119,6 +119,8 @@ html,body{
   justify-content:center;
 }
 .nav-ic svg{width:22px;height:22px}
+.pwa-install-btn{padding:0;border:0;background:transparent;color:#1E2026}
+.pwa-install-btn:focus-visible{outline:2px solid #F0B90B;outline-offset:3px}
 .badge{
   position:absolute;
   top:-5px;
@@ -923,6 +925,12 @@ html,body{
 
     <!-- scan + chat -->
     <div class="nav-icons">
+      <button class="nav-ic pwa-install-btn" id="pwa-install-btn" type="button" aria-label="Install app" title="Install app">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v11m0 0-4-4m4 4 4-4"/>
+          <path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
+        </svg>
+      </button>
       <div class="nav-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="#1E2026" stroke-width="1.8" stroke-linecap="round">
           <path d="M3 7V5a2 2 0 012-2h2"/>
@@ -5613,10 +5621,60 @@ function evReset(){
 
 </script>
 
+<div id="pwa-install-toast" role="status" aria-live="polite" style="display:none;position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:10001;max-width:calc(100vw - 32px);padding:11px 16px;border-radius:10px;background:#1E2026;color:#fff;font-size:13px;line-height:1.4;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.22)"></div>
 <script>
+(function () {
+  var installButton = document.getElementById('pwa-install-btn');
+  var installToast = document.getElementById('pwa-install-toast');
+  var deferredPrompt = null;
+  var toastTimer;
+
+  function showInstallToast(message) {
+    installToast.textContent = message;
+    installToast.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { installToast.style.display = 'none'; }, 4500);
+  }
+
+  function isInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+
+  installButton.hidden = isInstalled();
+  window.addEventListener('beforeinstallprompt', function (event) {
+    event.preventDefault();
+    deferredPrompt = event;
+    installButton.hidden = false;
+  });
+
+  installButton.addEventListener('click', async function () {
+    if (!deferredPrompt) {
+      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+      showInstallToast(isIOS
+        ? 'To install, tap Share, then Add to Home Screen.'
+        : 'Open your browser menu and choose Install app or Add to Home screen.');
+      return;
+    }
+
+    var promptEvent = deferredPrompt;
+    deferredPrompt = null;
+    await promptEvent.prompt();
+    var choice = await promptEvent.userChoice;
+    if (choice.outcome === 'accepted') showInstallToast('App installed.');
+  });
+
+  window.addEventListener('appinstalled', function () {
+    deferredPrompt = null;
+    installButton.hidden = true;
+    showInstallToast('App installed.');
+  });
+})();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function (error) {
+      console.error('Service worker registration failed:', error);
+    });
   });
 }
 </script>
