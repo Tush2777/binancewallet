@@ -1,4 +1,4 @@
-const CACHE_NAME = 'binance-clone-shell-v2';
+const CACHE_NAME = 'binance-clone-shell-v3';
 const APP_SHELL = [
   '/',
   '/app.html',

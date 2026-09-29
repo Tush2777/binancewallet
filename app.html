@@ -237,7 +237,7 @@ html,body{
   white-space:nowrap;
 }
 .btn-add-funds{
-  background:#F0F0F0;
+  background:#F5C843;
   color:#1E2026;
   font-family:'PN',sans-serif;
   font-size:14px;
@@ -925,12 +925,14 @@ html,body{
 
     <!-- scan + chat -->
     <div class="nav-icons">
+      <!--
       <button class="nav-ic pwa-install-btn" id="pwa-install-btn" type="button" aria-label="Install app" title="Install app">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 3v11m0 0-4-4m4 4 4-4"/>
           <path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>
         </svg>
       </button>
+    -->
       <div class="nav-ic">
         <svg viewBox="0 0 24 24" fill="none" stroke="#1E2026" stroke-width="1.8" stroke-linecap="round">
           <path d="M3 7V5a2 2 0 012-2h2"/>
@@ -5640,32 +5642,34 @@ function evReset(){
     return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   }
 
-  installButton.hidden = isInstalled();
-  window.addEventListener('beforeinstallprompt', function (event) {
-    event.preventDefault();
-    deferredPrompt = event;
-    installButton.hidden = false;
-  });
+  if (installButton) {
+    installButton.hidden = isInstalled();
+    window.addEventListener('beforeinstallprompt', function (event) {
+      event.preventDefault();
+      deferredPrompt = event;
+      installButton.hidden = false;
+    });
 
-  installButton.addEventListener('click', async function () {
-    if (!deferredPrompt) {
-      var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-      showInstallToast(isIOS
-        ? 'To install, tap Share, then Add to Home Screen.'
-        : 'Open your browser menu and choose Install app or Add to Home screen.');
-      return;
-    }
+    installButton.addEventListener('click', async function () {
+      if (!deferredPrompt) {
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+        showInstallToast(isIOS
+          ? 'To install, tap Share, then Add to Home Screen.'
+          : 'Open your browser menu and choose Install app or Add to Home screen.');
+        return;
+      }
 
-    var promptEvent = deferredPrompt;
-    deferredPrompt = null;
-    await promptEvent.prompt();
-    var choice = await promptEvent.userChoice;
-    if (choice.outcome === 'accepted') showInstallToast('App installed.');
-  });
+      var promptEvent = deferredPrompt;
+      deferredPrompt = null;
+      await promptEvent.prompt();
+      var choice = await promptEvent.userChoice;
+      if (choice.outcome === 'accepted') showInstallToast('App installed.');
+    });
+  }
 
   window.addEventListener('appinstalled', function () {
     deferredPrompt = null;
-    installButton.hidden = true;
+    if (installButton) installButton.hidden = true;
     showInstallToast('App installed.');
   });
 })();
