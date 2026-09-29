@@ -1,14 +1,22 @@
 {
   "version": 2,
-  "outputDirectory": ".",
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": "ca.pem"
+      }
+    },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.png", "use": "@vercel/static" },
+    { "src": "manifest.json", "use": "@vercel/static" },
+    { "src": "sw.js", "use": "@vercel/static" },
+    { "src": "ICONS/**", "use": "@vercel/static" }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/app.html" },
     { "source": "/dashboard", "destination": "/app.html" },
     { "source": "/admin", "destination": "/admin.html" }
-  ],
-  "functions": {
-    "api/**/*.js": {
-      "includeFiles": "ca.pem"
-    }
-  }
+  ]
 }
