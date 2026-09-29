@@ -4248,7 +4248,7 @@ function fmtFiat(v) {
 function applyBalance(b) {
   var rawVal = parseFloat((b.totalUsdt || '0').replace(/,/g, ''));
   var val    = rawVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 8});
-  var pnlStr = ('-$3.9424') + '(' + ('-0.79%') + ')';
+  
 
   // Always update non-hidden elements
   var fVal  = document.getElementById('ap-funding-val');
@@ -4426,7 +4426,7 @@ function updateLiveTotal() {
   });
   if (total <= 0) return;
   var totalStr = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  var pnlStr = ('-$3.9424') + '(' + ('-0.79%') + ')'; // keep PnL unchanged — don't overwrite it
+  const pnlStr = ('-$3.9424') + '(' + ('-0.79%') + ')'; // keep PnL unchanged — don't overwrite it
   if (typeof balHidden !== 'undefined' && balHidden) {
     _balSnapshot.homeNum   = '$' + totalStr;
     _balSnapshot.homeFiat  = '≈$' + totalStr;
