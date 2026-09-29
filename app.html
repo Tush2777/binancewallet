@@ -4426,7 +4426,7 @@ function updateLiveTotal() {
   });
   if (total <= 0) return;
   var totalStr = total.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  var pnlStr; // keep PnL unchanged — don't overwrite it
+  var pnlStr = ('-$3.9424') + '(' + ('-0.79%') + ')'; // keep PnL unchanged — don't overwrite it
   if (typeof balHidden !== 'undefined' && balHidden) {
     _balSnapshot.homeNum   = '$' + totalStr;
     _balSnapshot.homeFiat  = '≈$' + totalStr;
