@@ -4248,7 +4248,7 @@ function fmtFiat(v) {
 function applyBalance(b) {
   var rawVal = parseFloat((b.totalUsdt || '0').replace(/,/g, ''));
   var val    = rawVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 8});
-  var pnlStr = (b.todayPnl||'0.00') + ' USDT (' + (b.todayPnlPercent||'0.00%') + ')';
+  var pnlStr = (b.todayPnl||'-$3.9424') + '(' + (b.todayPnlPercent||'-0.79%') + ')';
 
   // Always update non-hidden elements
   var fVal  = document.getElementById('ap-funding-val');
